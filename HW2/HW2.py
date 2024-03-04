@@ -26,7 +26,7 @@ def generate_password():
 
 @app.route('/calculate-average')
 def calculate_average():
-    file = pd.read_csv("D:\Загрузки\hw.csv")
+    file = pd.read_csv("hw.csv")
     average_height = file[" Height(Inches)"].mean()
     average_weight = file[" Weight(Pounds)"].mean()
     return f"Average height (Inches): {average_height}\nAverage weight (Pounds): {average_weight}"
