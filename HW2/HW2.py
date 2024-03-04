@@ -1,8 +1,6 @@
 import string
-from webargs import fields, validate
 from flask import Flask
 import random
-from webargs.flaskparser import use_kwargs
 import pandas as pd
 
 
@@ -10,17 +8,20 @@ app = Flask(__name__)
 
 
 @app.route("/generate-password")
-@use_kwargs({"length": fields.Int(
-    missing=10,
-    validate=[validate.Range(min_inclusive=True, min=10, max_inclusive=True, max=20)]),
-    },
-    location='query'
-)
-def generate_password(length: int) -> object:
-    return f"Your password: {''.join(random.choices(
-        string.digits+string.ascii_lowercase+string.ascii_uppercase+string.punctuation,
-        k=length
-        ))}"
+def generate_password():
+    length = random.randint(10, 20)
+    required_symbols = []
+    for _ in range(length // 4):
+        required_symbols.append(random.choice(string.ascii_uppercase))
+        required_symbols.append(random.choice(string.ascii_lowercase))
+        required_symbols.append(random.choice(string.digits))
+        required_symbols.append(random.choice(string.punctuation))
+    if len(required_symbols) != length:
+        for _ in range(length - len(required_symbols)):
+            required_symbols.append(random.choice(string.ascii_letters))
+    random.shuffle(required_symbols)
+    password = ''.join(required_symbols)
+    return password
 
 
 @app.route('/calculate-average')
