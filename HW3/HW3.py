@@ -1,10 +1,10 @@
+import csv
+
 import requests
 from faker import Faker
 from flask import Flask, jsonify, Response
 from webargs import validate, fields
 from webargs.flaskparser import use_kwargs
-import json
-from babel.numbers import get_currency_symbol
 
 
 app = Flask(__name__)
@@ -31,13 +31,22 @@ def generate_students(count: int) -> object:
                 "2.Last name": faker_instance.last_name(),
                 "3.Email": faker_instance.email(),
                 "4.Password": faker_instance.password(),
-                "5.Birthday": f"{faker_instance.date_of_birth(None, 18, 60)}",
+                "5.Birthday": f"{faker_instance.date_of_birth(minimum_age=18, maximum_age=60)}",
 
             }
         )
-    with open("students.json", "w") as jsonfile:
-        json.dump(students, jsonfile, indent=4)
+    with open("students.csv", "w", newline='') as csvfile:
+        writer = csv.DictWriter(csvfile, fieldnames=students[0].keys())
+        writer.writeheader()
+
+        for student in students:
+            writer.writerow(student)
     return jsonify(students)
+
+
+def get_currencies():
+    url = 'https://bitpay.com/api/rates'
+    return [rate['code'] for rate in requests.get(url).json()]
 
 
 @app.route('/get_bitcoin_value')
@@ -49,7 +58,7 @@ def generate_students(count: int) -> object:
         ),
         "currency": fields.Str(
             load_default="USD",
-            validate=[validate.OneOf(["UAH", "USD", "EUR"])]
+            validate=[validate.OneOf(get_currencies())]
         )
     },
     location="query"
@@ -59,14 +68,20 @@ def get_bitcoin_value(currency, convert):
     result = requests.get(url)
     if result.status_code != 200:
         return Response("Error", status=result.status_code)
-    data = result.json()
-    value = data.get('rate')
+    value = result.json().get('rate')
     price_per_quantity = value * convert
-    symbol = "₴" if currency.upper() == "UAH" else get_currency_symbol(currency.upper(), locale='en_US')
+
+    def get_symbol(currency):
+        url = 'https://bitpay.com/currencies'
+        response = requests.get(url)
+        currencies = response.json()
+        for info in currencies['data']:
+            if info['code'] == currency:
+                return info['symbol']
     data = {
         "1. Currency": currency,
-        "2. Currency symbol": symbol,
-        f"3. Price per 1 BTC": value,
+        "2. Currency symbol": get_symbol(currency),
+        "3. Price per 1 BTC": value,
         "4. Quantity": convert,
         "5. Price per quantity": price_per_quantity
     }
