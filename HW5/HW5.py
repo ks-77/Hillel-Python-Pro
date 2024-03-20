@@ -38,12 +38,13 @@ app = Flask(__name__)
 def stats_by_city(genre):
     if genre:
         query = f'''SELECT invoices.BillingCity
-                    FROM genres
-                    JOIN tracks ON tracks.GenreId = genres.GenreId
-                    JOIN invoice_items ON invoice_items.TrackId = tracks.TrackId
-                    JOIN invoices ON invoices.InvoiceId = invoice_items.InvoiceId
+                    FROM invoices
+                    JOIN invoice_items ON invoice_items.InvoiceId = invoices.InvoiceId
+                    JOIN tracks ON tracks.TrackId = invoice_items.TrackId
+                    JOIN genres ON genres.GenreId = tracks.GenreId
                     WHERE genres.Name = "{genre}"
-                    GROUP BY invoice_items.Quantity'''
+                    GROUP BY invoice_items.Quantity
+                    ORDER BY MAX(COUNT(invoice_items.Quantity)) OVER(partition by invoices.BillingCity) DESC'''
         result = execute_query(query=query)
         return result
     else:
