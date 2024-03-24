@@ -22,6 +22,9 @@ class Circle:
         dif_y = point.y - self.y
         return math.sqrt(dif_x ** 2 + dif_y ** 2) <= self.radius
 
+    def __contains__(self, point):
+        return self.contains(point)
+
 
 app = Flask(__name__)
 
